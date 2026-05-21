@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   RequestLine.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: kobe <kobe@student.42.fr>                  +#+  +:+       +#+        */
+/*   By: thodavid <thodavid@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/05 15:43:43 by thodavid          #+#    #+#             */
-/*   Updated: 2026/05/13 14:21:27 by kobe             ###   ########.fr       */
+/*   Updated: 2026/05/21 10:47:30 by thodavid         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,7 +32,7 @@ static bool is_space_or_tab(char c)
     return (c == ' ' || c == '\t');
 }
 
-// split line into token and put into a vector
+// split line(without \r\n) into token and put into a vector
 static std::vector<std::string> split_request_line(const std::string &line)
 {
     std::vector<std::string> tokens;
@@ -56,6 +56,7 @@ static std::vector<std::string> split_request_line(const std::string &line)
     if (second_sp == std::string::npos)
         throw(std::runtime_error("400 Bad Request: invalid request line"));
 
+    //if spaces > 2 
     if (line.find(' ', second_sp + 1) != std::string::npos)
         throw(std::runtime_error("400 Bad Request: too many spaces in request line"));
 
@@ -115,7 +116,7 @@ static bool is_valid_origin_target(const std::string &target)
     return (true);
 }
 
-static bool starts_with(const std::string &s, const std::string &prefix)
+static bool http_https(const std::string &s, const std::string &prefix)
 {
     size_t i;
 
@@ -134,10 +135,10 @@ static bool starts_with(const std::string &s, const std::string &prefix)
 
 static bool is_absolute_uri(const std::string &target)
 {
-    if (starts_with(target, "http://"))
+    if (http_https(target, "http://"))
         return (true);
-    // no need but easy
-    if (starts_with(target, "https://"))
+    // no need but easy to check
+    if (http_https(target, "https://"))
         return (true);
     return (false);
 }
@@ -197,16 +198,18 @@ static ParsedTarget parse_absolute_uri(const std::string &uri)
 
     return (result);
 }
+
 // PARSING
 // store token into RequestLine class
 void RequestLine::parse(const std::string &line)
 {
     std::vector<std::string> tokens;
-    std::string method;
-    std::string target;
-    std::string version;
-    std::string authority;
-    ParsedTarget parsed;
+    
+    ParsedTarget    parsed;
+    std::string     method;
+    std::string     target;
+    std::string     version;
+    std::string     authority;
 
     tokens = split_request_line(line);
     if (tokens.size() != 3)
@@ -232,6 +235,7 @@ void RequestLine::parse(const std::string &line)
     else if (!is_valid_origin_target(target))
         throw(std::runtime_error("400 Bad Request: invalid target"));
 
+    _parsed_target.parse(target);
     _method = method;
     _target = target;
     _version = version;
@@ -243,3 +247,5 @@ const std::string &RequestLine::method() const { return (_method); }
 const std::string &RequestLine::target() const { return (_target); }
 const std::string &RequestLine::version() const { return (_version); }
 const std::string &RequestLine::authority() const { return (_authority); }
+const std::string &RequestLine::path() const { return (_parsed_target.path()); }
+const std::string &RequestLine::query() const { return (_parsed_target.query()); }
